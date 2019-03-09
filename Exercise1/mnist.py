@@ -3,7 +3,8 @@ import torch.nn as nn
 import torchvision.datasets as dsets
 import torchvision.transforms as transforms
 from torch.autograd import Variable
-
+import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
 # Hyper Parameters
 input_size = 784
@@ -42,10 +43,7 @@ class Net(nn.Module):
         out = self.fc1(x)
         return out
 
-
 net = Net(input_size, num_classes)
-
-
 # Loss and Optimizer
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate)
@@ -60,6 +58,28 @@ for epoch in range(num_epochs):
         # Forward + Backward + Optimize
         # TODO: implement training code
 
+        net.train()
+        # zero the parameter gradients
+        optimizer.zero_grad()
+
+        # forward + backward + optimize
+        output = net(images)
+        loss = criterion(output, labels)
+        loss.backward()
+        optimizer.step()
+
+        # Eval
+        net.eval()
+        with torch.no_grad():
+            y_ = net(images)
+
+        # print statistics
+        running_loss += loss.item()
+        if i % 2000 == 1999:    # print every 2000 mini-batches
+            print('[%d, %5d] loss: %.3f' %
+                  (epoch + 1, i + 1, running_loss / 2000))
+            running_loss = 0.0
+
 # Test the Model
 correct = 0
 total = 0
@@ -68,7 +88,33 @@ for images, labels in test_loader:
     # TODO: implement evaluation code - report accuracy
     total += labels.size(0)
 
+    #with torch.no_grad():
+    outputs = net(images)
+    _, predicted = torch.max(outputs.data, 1)
+    total += labels.size(0)
+    correct += (predicted == labels).sum().item()
+
+    print('Accuracy of the network on the 10000 test images: %d %%' % (
+        100 * correct / total))
+
+
 print('Accuracy of the network on the 10000 test images: %d %%' % (100 * correct / total))
 
 # Save the Model
 torch.save(net.state_dict(), 'model.pkl')
+
+hidden_layer_size = 500
+
+#Deep Neural Network Model
+class Net3(nn.Module):
+    def __init__(self, input_size,hidden_layer_size ,num_classes):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_layer_size)
+        self.fc2 = nn.Linear(input_size, hidden_layer_size)
+        self.fc3 = nn.Linear(hidden_layer_size, num_classes)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        out = self.fc3(x)
+        return out
