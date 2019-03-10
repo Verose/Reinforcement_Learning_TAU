@@ -59,25 +59,21 @@ class DeepNet(nn.Module):
         out = self.fc3(x)
         return out
 
-def train_NN(net, criterion, optimizer, num_epochs):
+def NN_model(net, criterion, optimizer, num_epochs):
     # Train the Model
     liveloss = PlotLosses()
-
     for epoch in range(num_epochs):
+
+        net.train()
+        running_loss = 0.0
+        running_corrects = 0
         for i, (images, labels) in enumerate(train_loader):
-
             logs = {}
-            running_loss = 0.0
-            running_corrects = 0
-
             # Convert torch tensor to Variable
             images = Variable(images.view(-1, 28*28))
             labels = Variable(labels)
 
             # Forward + Backward + Optimize
-            # TODO: implement training code
-
-            net.train()
 
             # forward + backward + optimize
             output = net(images)
@@ -97,6 +93,25 @@ def train_NN(net, criterion, optimizer, num_epochs):
         logs['log loss'] = epoch_loss.item()
         logs['accuracy'] = epoch_acc.item()
 
+        # Test the Model
+        net.eval()
+        running_loss_test = 0.0
+        running_corrects_test = 0
+
+        for images, labels in test_loader:
+            images = Variable(images.view(-1, 28 * 28))
+
+            # with torch.no_grad():
+            outputs = net(images)
+            _, preds = torch.max(outputs.data, 1)
+            running_loss_test += loss.detach() * images.size(0)
+            running_corrects_test += torch.sum(preds == labels.data)
+
+        epoch_loss = running_loss_test / len(test_loader.dataset)
+        epoch_acc = running_corrects_test.float() / len(test_loader.dataset)
+        logs['val_log loss'] = epoch_loss.item()
+        logs['val_accuracy'] = epoch_acc.item()
+
         liveloss.update(logs)
         liveloss.draw()
 
@@ -106,23 +121,6 @@ def train_NN(net, criterion, optimizer, num_epochs):
     torch.save(net.state_dict(), 'model.pkl')
     return net
 
-def test_NN(net):
-    # Test the Model
-    correct = 0
-    total = 0
-
-    for images, labels in test_loader:
-        images = Variable(images.view(-1, 28*28))
-        # TODO: implement evaluation code - report accuracy
-        total += labels.size(0)
-
-        #with torch.no_grad():
-        outputs = net(images)
-        _, predicted = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
-
-    print('Accuracy of the network on the 10000 test images: %d %%' % (100 * correct / total))
 
 #create the net
 net = Net(input_size, num_classes)
@@ -132,8 +130,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate)
 
 #train and test the model
-trained_model = train_NN(net, criterion, optimizer, num_epochs)
-test_NN(trained_model)
+model = NN_model(net, criterion, optimizer, num_epochs)
 
 #Find a better optimization configuration
 list_learning_rate = [0.1, 0.01, 1e-3, 0.0001]
@@ -144,4 +141,4 @@ for i in list_learning_rate:
 for epoch_conf in list_num_epochs:
     for optimizer_conf in optimzer_list:
         # train and test the model
-        train_NN(net, criterion, optimizer_conf, epoch_conf)
+        NN_model(net, criterion, optimizer_conf, epoch_conf)
