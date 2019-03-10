@@ -119,7 +119,23 @@ def NN_model(net, criterion, optimizer, num_epochs):
 
     # Save the Model
     torch.save(net.state_dict(), 'model.pkl')
+
     return net
+
+
+def test_NN(net):
+    # Test the Model
+    correct = 0
+    total = 0
+
+    for images, labels in test_loader:
+        images = Variable(images.view(-1, 28*28))
+        total += labels.size(0)
+        #with torch.no_grad():
+        outputs = net(images)
+        _, predicted = torch.max(outputs.data, 1)
+        correct += (predicted == labels).sum().item()
+    print('Accuracy of the network on the 10000 test images: %d %%' % (100 * correct / total))
 
 
 #create the net
