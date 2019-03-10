@@ -5,6 +5,7 @@ import torchvision.transforms as transforms
 from torch.autograd import Variable
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+from livelossplot import PlotLosses
 
 # Hyper Parameters
 input_size = 784
@@ -58,10 +59,17 @@ class DeepNet(nn.Module):
         out = self.fc3(x)
         return out
 
-def train_test_NN(net, criterion, optimizer, num_epochs):
+def train_NN(net, criterion, optimizer, num_epochs):
     # Train the Model
+    liveloss = PlotLosses()
+
     for epoch in range(num_epochs):
         for i, (images, labels) in enumerate(train_loader):
+
+            logs = {}
+            running_loss = 0.0
+            running_corrects = 0
+
             # Convert torch tensor to Variable
             images = Variable(images.view(-1, 28*28))
             labels = Variable(labels)
@@ -70,25 +78,39 @@ def train_test_NN(net, criterion, optimizer, num_epochs):
             # TODO: implement training code
 
             net.train()
-            # zero the parameter gradients
-            optimizer.zero_grad()
 
             # forward + backward + optimize
             output = net(images)
             loss = criterion(output, labels)
-            loss.backward()
-            optimizer.step()
 
-            # print statistics
-            running_loss += loss.item()
-            if i % 2000 == 1999:    # print every 2000 mini-batches
-                print('[%d, %5d] loss: %.3f' %
-                      (epoch + 1, i + 1, running_loss / 2000))
-                running_loss = 0.0
+            loss.backward() #accumulates the gradient (by addition) for each parameter.
+            optimizer.step() #performs a parameter update based on the current gradient
+            # zero the parameter gradients
+            optimizer.zero_grad()
 
+            _, preds = torch.max(output, 1)
+            running_loss += loss.detach() * images.size(0)
+            running_corrects += torch.sum(preds == labels.data)
+
+        epoch_loss = running_loss / len(train_loader.dataset)
+        epoch_acc = running_corrects.float() / len(train_loader.dataset)
+        logs['log loss'] = epoch_loss.item()
+        logs['accuracy'] = epoch_acc.item()
+
+        liveloss.update(logs)
+        liveloss.draw()
+
+        #print(epoch, loss)
+
+    # Save the Model
+    torch.save(net.state_dict(), 'model.pkl')
+    return net
+
+def test_NN(net):
     # Test the Model
     correct = 0
     total = 0
+
     for images, labels in test_loader:
         images = Variable(images.view(-1, 28*28))
         # TODO: implement evaluation code - report accuracy
@@ -100,14 +122,7 @@ def train_test_NN(net, criterion, optimizer, num_epochs):
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
 
-        print('Accuracy of the network on the 10000 test images: %d %%' % (
-            100 * correct / total))
-
-
     print('Accuracy of the network on the 10000 test images: %d %%' % (100 * correct / total))
-
-    # Save the Model
-    torch.save(net.state_dict(), 'model.pkl')
 
 #create the net
 net = Net(input_size, num_classes)
@@ -117,7 +132,8 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate)
 
 #train and test the model
-train_test_NN(net, criterion, optimizer, num_epochs)
+trained_model = train_NN(net, criterion, optimizer, num_epochs)
+test_NN(trained_model)
 
 #Find a better optimization configuration
 list_learning_rate = [0.1, 0.01, 1e-3, 0.0001]
@@ -128,5 +144,4 @@ for i in list_learning_rate:
 for epoch_conf in list_num_epochs:
     for optimizer_conf in optimzer_list:
         # train and test the model
-        train_test_NN(net, criterion, optimizer_conf, epoch_conf)
-
+        train_NN(net, criterion, optimizer_conf, epoch_conf)
