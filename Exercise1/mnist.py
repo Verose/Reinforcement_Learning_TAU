@@ -48,7 +48,7 @@ class Net(nn.Module):
 #Deep Neural Network Model
 class DeepNet(nn.Module):
     def __init__(self, input_size,hidden_layer_size ,num_classes):
-        super(Net, self).__init__()
+        super(DeepNet, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_layer_size)
         self.fc2 = nn.Linear(input_size, hidden_layer_size)
         self.fc3 = nn.Linear(hidden_layer_size, num_classes)
@@ -151,10 +151,19 @@ model = NN_model(net, criterion, optimizer, num_epochs)
 #Find a better optimization configuration
 list_learning_rate = [0.1, 0.01, 1e-3, 0.0001]
 list_num_epochs = [100, 150, 170, 200]
+optim_list = [torch.optim.SGD, torch.optim.ASGD, torch.optim.Adadelta, torch.optim.Adam]
 optimzer_list = []
-for i in list_learning_rate:
-    optimzer_list.append(torch.optim.SGD(net.parameters(), lr=i))
+for opt in optim_list:
+    for i in list_learning_rate:
+        optimzer_list.append(opt(net.parameters(), lr=i))
+
 for epoch_conf in list_num_epochs:
     for optimizer_conf in optimzer_list:
         # train and test the model
         NN_model(net, criterion, optimizer_conf, epoch_conf)
+
+#create the net
+net = DeepNet(input_size, num_classes)
+
+#train and test the Deep model
+model = NN_model(net, criterion, optimizer, num_epochs)
