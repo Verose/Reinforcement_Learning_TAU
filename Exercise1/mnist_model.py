@@ -74,6 +74,7 @@ def train(network, loss_fn, opt, epochs, name):
 
 def test(network):
     # Test the Model
+    net.eval()
     correct = 0
     total = 0
 
