@@ -5,7 +5,7 @@ import torchvision.transforms as transforms
 from torch.autograd import Variable
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-#from livelossplot import PlotLosses
+
 
 # Hyper Parameters
 input_size = 784
@@ -59,9 +59,9 @@ class DeepNet(nn.Module):
         out = self.fc3(x)
         return out
 
-def NN_model(net, criterion, optimizer, num_epochs):
+def NN_model(net, criterion, optimizer, num_epochs, name):
+
     # Train the Model
-    #liveloss = PlotLosses()
     epoch_loss_list = []
     for epoch in range(num_epochs):
         net.train()
@@ -88,38 +88,9 @@ def NN_model(net, criterion, optimizer, num_epochs):
 
         epoch_loss = running_loss / len(train_loader.dataset)
         epoch_loss_list.append(epoch_loss)
-        #epoch_acc = running_corrects.float() / len(train_loader.dataset)
-
-
-        # logs['log loss'] = epoch_loss.item()
-        # logs['accuracy'] = epoch_acc.item()
-
-        # Test the Model
-        # net.eval()
-        # running_loss_test = 0.0
-        # running_corrects_test = 0
-
-        # for images, labels in test_loader:
-        #     images = Variable(images.view(-1, 28 * 28))
-        #
-        #     # with torch.no_grad():
-        #     outputs = net(images)
-        #     _, preds = torch.max(outputs.data, 1)
-        #     running_loss_test += loss.detach() * images.size(0)
-        #     running_corrects_test += torch.sum(preds == labels.data)
-        #
-        # epoch_loss = running_loss_test / len(test_loader.dataset)
-        # epoch_acc = running_corrects_test.float() / len(test_loader.dataset)
-        # logs['val_log loss'] = epoch_loss.item()
-        # logs['val_accuracy'] = epoch_acc.item()
-
-        # liveloss.update(logs)
-        # liveloss.draw()
-
-        #print(epoch, loss)
 
     # Save the Model
-    torch.save(net.state_dict(), 'model.pkl')
+    torch.save(net.state_dict(), name+'.pkl')
 
     return net, epoch_loss_list
 
@@ -161,28 +132,28 @@ model = NN_model(net, criterion, optimizer, num_epochs)
 list_learning_rate = [0.1, 0.01, 1e-3, 0.0001]
 list_num_epochs = [100, 150, 200]
 net_architecture = [net, deep_net]
-optim_list = [torch.optim.SGD, torch.optim.ASGD, torch.optim.Adadelta, torch.optim.Adam]
+optim_list = [torch.optim.SGD, torch.optim.Adam]
 optimzer_list = []
 for opt in optim_list:
     for i in list_learning_rate:
-        optimzer_list.append(opt(net.parameters(), lr=i))
+        optimzer_list.append([opt(net.parameters(), lr=i), " opt:"+str(opt)+" lr:"+str(i)])
 
 max_accuracy = 0
 for epoch_conf in list_num_epochs:
     for optimizer_conf in optimzer_list:
         # train and test the model
-        for net_ar in net_architecture:
-            i = 1
-            trained_net, epoch_loss_list = NN_model(net_ar, criterion, optimizer_conf, epoch_conf)
-            accuracy = test_NN(trained_net)
-            if accuracy >= max_accuracy:
-                best_acc_model = trained_net
-                max_accuracy = accuracy
-                best_optimizer = optimizer_conf
-            plt.plot(trained_net, label=str(i))
-            plt.legend(frameon=False)
-            plt.show()
-            i += 1
+        i = 1
+        name = 'epoch:'+str(epoch_conf) + optimizer_conf[1]
+        trained_net, epoch_loss_list = NN_model(net, criterion, optimizer_conf[0], epoch_conf, name)
+        accuracy = test_NN(trained_net)
+        if accuracy >= max_accuracy:
+            best_acc_model = trained_net
+            max_accuracy = accuracy
+            best_optimizer = optimizer_conf
+        plt.plot(trained_net, label=str(i))
+        plt.legend(frameon=False)
+        plt.show()
+        i += 1
 
 plt.savefig('loss_NN.png', bbox_inches='tight')
 # Print model's state_dict
