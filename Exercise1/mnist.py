@@ -120,18 +120,24 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate)
 
 #train and test the model
-model = NN_model(net, criterion, optimizer, num_epochs)
+model = NN_model(net, criterion, optimizer, num_epochs, "unoptimized")
+
+plt.plot(model, label="Unoptimized Net")
+plt.legend(frameon=False)
 
 #create the net
 deep_net = DeepNet(input_size, num_classes)
 
 #train and test the Deep model
-model = NN_model(net, criterion, optimizer, num_epochs)
+model = NN_model(net, criterion, optimizer, num_epochs, "DeepNet")
+
+plt.plot(model, label="DeepNet")
+plt.legend(frameon=False)
+
 
 #Find a better optimization configuration
 list_learning_rate = [0.1, 0.01, 1e-3, 0.0001]
 list_num_epochs = [100, 150, 200]
-net_architecture = [net, deep_net]
 optim_list = [torch.optim.SGD, torch.optim.Adam]
 optimzer_list = []
 for opt in optim_list:
