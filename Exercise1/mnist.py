@@ -5,7 +5,7 @@ import torchvision.transforms as transforms
 from torch.autograd import Variable
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-from livelossplot import PlotLosses
+#from livelossplot import PlotLosses
 
 # Hyper Parameters
 input_size = 784
@@ -75,10 +75,8 @@ def NN_model(net, criterion, optimizer, num_epochs):
 
             # Forward + Backward + Optimize
 
-            # forward + backward + optimize
-            output = net(images)
-            loss = criterion(output, labels)
-
+            output = net(images) #feed the input and acquire the output from network
+            loss = criterion(output, labels) #calculating the predicted and the expected loss
             loss.backward() #accumulates the gradient (by addition) for each parameter.
             optimizer.step() #performs a parameter update based on the current gradient
             # zero the parameter gradients
@@ -140,6 +138,7 @@ def test_NN(net):
         _, predicted = torch.max(outputs.data, 1)
         correct += (predicted == labels).sum().item()
     print('Accuracy of the network on the 10000 test images: %d %%' % (100 * correct / total))
+    return (100 * correct / total)
 
 
 #create the net
@@ -151,6 +150,7 @@ optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate)
 
 #train and test the model
 model = NN_model(net, criterion, optimizer, num_epochs)
+
 #create the net
 deep_net = DeepNet(input_size, num_classes)
 
@@ -159,7 +159,7 @@ model = NN_model(net, criterion, optimizer, num_epochs)
 
 #Find a better optimization configuration
 list_learning_rate = [0.1, 0.01, 1e-3, 0.0001]
-list_num_epochs = [100, 150, 170, 200]
+list_num_epochs = [100, 150, 200]
 net_architecture = [net, deep_net]
 optim_list = [torch.optim.SGD, torch.optim.ASGD, torch.optim.Adadelta, torch.optim.Adam]
 optimzer_list = []
@@ -167,9 +167,30 @@ for opt in optim_list:
     for i in list_learning_rate:
         optimzer_list.append(opt(net.parameters(), lr=i))
 
+max_accuracy = 0
 for epoch_conf in list_num_epochs:
     for optimizer_conf in optimzer_list:
         # train and test the model
         for net_ar in net_architecture:
+            i = 1
             trained_net, epoch_loss_list = NN_model(net_ar, criterion, optimizer_conf, epoch_conf)
+            accuracy = test_NN(trained_net)
+            if accuracy >= max_accuracy:
+                best_acc_model = trained_net
+                max_accuracy = accuracy
+                best_optimizer = optimizer_conf
+            plt.plot(trained_net, label=str(i))
+            plt.legend(frameon=False)
+            plt.show()
+            i += 1
 
+plt.savefig('loss_NN.png', bbox_inches='tight')
+# Print model's state_dict
+print("Model's state_dict:")
+for param_tensor in best_acc_model.state_dict():
+   print(param_tensor, "\t", best_acc_model.state_dict()[param_tensor].size())
+
+# Print optimizer's state_dict
+print("Optimizer's state_dict:")
+for var_name in best_optimizer.state_dict():
+   print(var_name, "\t", best_optimizer.state_dict()[var_name])
