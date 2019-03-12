@@ -54,16 +54,16 @@ class DeepNet(nn.Module):
         self.fc3 = nn.Linear(hidden_layer_size, num_classes)
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
+        x = self.fc1(x)
         x = F.relu(self.fc2(x))
         out = self.fc3(x)
         return out
 
 def NN_model(net, criterion, optimizer, num_epochs):
     # Train the Model
-    liveloss = PlotLosses()
+    #liveloss = PlotLosses()
+    epoch_loss_list = []
     for epoch in range(num_epochs):
-
         net.train()
         running_loss = 0.0
         running_corrects = 0
@@ -89,42 +89,46 @@ def NN_model(net, criterion, optimizer, num_epochs):
             running_corrects += torch.sum(preds == labels.data)
 
         epoch_loss = running_loss / len(train_loader.dataset)
-        epoch_acc = running_corrects.float() / len(train_loader.dataset)
-        logs['log loss'] = epoch_loss.item()
-        logs['accuracy'] = epoch_acc.item()
+        epoch_loss_list.append(epoch_loss)
+        #epoch_acc = running_corrects.float() / len(train_loader.dataset)
+
+
+        # logs['log loss'] = epoch_loss.item()
+        # logs['accuracy'] = epoch_acc.item()
 
         # Test the Model
-        net.eval()
-        running_loss_test = 0.0
-        running_corrects_test = 0
+        # net.eval()
+        # running_loss_test = 0.0
+        # running_corrects_test = 0
 
-        for images, labels in test_loader:
-            images = Variable(images.view(-1, 28 * 28))
+        # for images, labels in test_loader:
+        #     images = Variable(images.view(-1, 28 * 28))
+        #
+        #     # with torch.no_grad():
+        #     outputs = net(images)
+        #     _, preds = torch.max(outputs.data, 1)
+        #     running_loss_test += loss.detach() * images.size(0)
+        #     running_corrects_test += torch.sum(preds == labels.data)
+        #
+        # epoch_loss = running_loss_test / len(test_loader.dataset)
+        # epoch_acc = running_corrects_test.float() / len(test_loader.dataset)
+        # logs['val_log loss'] = epoch_loss.item()
+        # logs['val_accuracy'] = epoch_acc.item()
 
-            # with torch.no_grad():
-            outputs = net(images)
-            _, preds = torch.max(outputs.data, 1)
-            running_loss_test += loss.detach() * images.size(0)
-            running_corrects_test += torch.sum(preds == labels.data)
-
-        epoch_loss = running_loss_test / len(test_loader.dataset)
-        epoch_acc = running_corrects_test.float() / len(test_loader.dataset)
-        logs['val_log loss'] = epoch_loss.item()
-        logs['val_accuracy'] = epoch_acc.item()
-
-        liveloss.update(logs)
-        liveloss.draw()
+        # liveloss.update(logs)
+        # liveloss.draw()
 
         #print(epoch, loss)
 
     # Save the Model
     torch.save(net.state_dict(), 'model.pkl')
 
-    return net
+    return net, epoch_loss_list
 
 
 def test_NN(net):
     # Test the Model
+    net.eval()
     correct = 0
     total = 0
 
@@ -147,10 +151,16 @@ optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate)
 
 #train and test the model
 model = NN_model(net, criterion, optimizer, num_epochs)
+#create the net
+deep_net = DeepNet(input_size, num_classes)
+
+#train and test the Deep model
+model = NN_model(net, criterion, optimizer, num_epochs)
 
 #Find a better optimization configuration
 list_learning_rate = [0.1, 0.01, 1e-3, 0.0001]
 list_num_epochs = [100, 150, 170, 200]
+net_architecture = [net, deep_net]
 optim_list = [torch.optim.SGD, torch.optim.ASGD, torch.optim.Adadelta, torch.optim.Adam]
 optimzer_list = []
 for opt in optim_list:
@@ -160,10 +170,6 @@ for opt in optim_list:
 for epoch_conf in list_num_epochs:
     for optimizer_conf in optimzer_list:
         # train and test the model
-        NN_model(net, criterion, optimizer_conf, epoch_conf)
+        for net_ar in net_architecture:
+            trained_net, epoch_loss_list = NN_model(net_ar, criterion, optimizer_conf, epoch_conf)
 
-#create the net
-net = DeepNet(input_size, num_classes)
-
-#train and test the Deep model
-model = NN_model(net, criterion, optimizer, num_epochs)
