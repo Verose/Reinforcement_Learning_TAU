@@ -47,16 +47,15 @@ class Net(nn.Module):
 
 #Deep Neural Network Model
 class DeepNet(nn.Module):
-    def __init__(self, input_size,hidden_layer_size ,num_classes):
+    def __init__(self, input_size, hidden_layer_size ,num_classes):
         super(DeepNet, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_layer_size)
-        self.fc2 = nn.Linear(input_size, hidden_layer_size)
-        self.fc3 = nn.Linear(hidden_layer_size, num_classes)
+        self.fc2 = nn.Linear(hidden_layer_size, num_classes)
+
 
     def forward(self, x):
-        x = self.fc1(x)
-        x = F.relu(self.fc2(x))
-        out = self.fc3(x)
+        x = F.relu(self.fc1(x))
+        out = self.fc2(x)
         return out
 
 def NN_model(net, criterion, optimizer, num_epochs, name):
@@ -127,10 +126,10 @@ plt.plot(epoch_loss_list, label="Unoptimized Net")
 plt.legend(frameon=False)
 
 #create the net
-deep_net = DeepNet(input_size, num_classes)
+deep_net = DeepNet(input_size, 500, num_classes)
 
 #train and test the Deep model
-trained_net, epoch_loss_list = NN_model(net, criterion, optimizer, num_epochs, "DeepNet")
+trained_net, epoch_loss_list = NN_model(deep_net, criterion, optimizer, num_epochs, "DeepNet")
 test_NN(trained_net)
 
 plt.plot(epoch_loss_list, label="DeepNet")
@@ -138,38 +137,37 @@ plt.legend(frameon=False)
 
 
 #Find a better optimization configuration
-list_learning_rate = [0.1, 0.01, 1e-3, 0.0001]
-list_num_epochs = [100, 150, 200]
+list_learning_rate = [0.1, 0.01, 1e-3]
 optim_list = [torch.optim.SGD, torch.optim.Adam]
 optimzer_list = []
 for opt in optim_list:
     for i in list_learning_rate:
-        optimzer_list.append([opt(net.parameters(), lr=i), " opt:"+str(opt)+" lr:"+str(i)])
+        optimzer_list.append([opt(net.parameters(), lr=i), " opt_"+str(opt).replace("<", "").replace(">", "")+" lr_"+str(i)])
 
 max_accuracy = 0
-for epoch_conf in list_num_epochs:
-    for optimizer_conf in optimzer_list:
-        # train and test the model
-        i = 1
-        name = 'epoch:'+str(epoch_conf) + optimizer_conf[1]
-        trained_net, epoch_loss_list = NN_model(net, criterion, optimizer_conf[0], epoch_conf, name)
-        accuracy = test_NN(trained_net)
-        if accuracy >= max_accuracy:
-            best_acc_model = trained_net
-            max_accuracy = accuracy
-            best_optimizer = optimizer_conf
-        plt.plot(trained_net, label=str(i))
-        plt.legend(frameon=False)
-        plt.show()
-        i += 1
+for optimizer_conf in optimzer_list:
+    # train and test the model
+    i = 1
+    name = optimizer_conf[1]
+    trained_net, epoch_loss_list = NN_model(net, criterion, optimizer_conf[0], 100, name)
+    accuracy = test_NN(trained_net)
+    if accuracy >= max_accuracy:
+        best_acc_model = trained_net
+        max_accuracy = accuracy
+        best_optimizer = optimizer_conf
+    plt.plot(epoch_loss_list, label=str(i))
+    plt.legend(frameon=False)
+    i += 1
 
+plt.show()
 plt.savefig('loss_NN.png', bbox_inches='tight')
-# Print model's state_dict
+
+# Print best model's state_dict
 print("Model's state_dict:")
 for param_tensor in best_acc_model.state_dict():
    print(param_tensor, "\t", best_acc_model.state_dict()[param_tensor].size())
 
-# Print optimizer's state_dict
+# Print best optimizer's state_dict
 print("Optimizer's state_dict:")
 for var_name in best_optimizer.state_dict():
    print(var_name, "\t", best_optimizer.state_dict()[var_name])
