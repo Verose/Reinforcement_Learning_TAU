@@ -15,11 +15,13 @@ def agent(ot, w):
 if __name__ == "__main__":
     env = gym.make('CartPole-v0')
     episodes_till_perfect_score = {}
+    print("starting random search")
 
     # run random search 1000 times
     for i in range(1000):
         max_w = None
         max_reward = -np.inf
+        print("random search run #{}".format(i))
 
         # random search
         for episode in range(10000):
@@ -50,5 +52,5 @@ if __name__ == "__main__":
     plt.ylabel("count")
     plt.title("average: {}".format(np.mean(episodes_list)))
     plt.savefig("cart_pole.png")
-    plt.show()
     env.close()
+    print('finished')

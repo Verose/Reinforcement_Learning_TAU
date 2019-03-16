@@ -137,4 +137,3 @@ plt.plot(list(range(num_epochs)), model2_loss, label='optimized, accuracy {}%'.f
 plt.plot(list(range(num_epochs)), model3_loss, label='deep, accuracy {}%'.format(model3_acc))
 plt.legend()
 plt.savefig('mnist.png')
-plt.show()

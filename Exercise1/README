@@ -18,6 +18,7 @@ cd /a/home/cc/students/cs/veredz1/workspace/Homework/Reinforcement_Learning_TAU/
 output:
 mnist.png - plots of the training loss curve comparing all
 the parts together, the accuracy you achieved on the test set and a path
+also, a pkl file for every model: model_unoptimized.pkl, model_optimized.pkl, model_deep.pkl
 
 File: cart_pole.py
 Code for Question 2: OpenAI Gym
