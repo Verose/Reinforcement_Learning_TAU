@@ -82,25 +82,22 @@ def value_iteration(mdp, gamma, nIt):
         # V: bellman backup on Vprev
         #     corresponding to the math above: V^{(it+1)} = T[V^{(it)}]
         #     ** numpy array of floats **
-
+        V = []
+        pi = []
         for s in range(mdp.nS):
-            max_val = 0
-            values = []
-            p = []
+            actions_values = []
             for a in range(mdp.nA):
                 value_from_action = 0
-                tuple_list = mdp.P[s][a]
-                for element in tuple_list:
-                    probability, nextstate, reward = element
-                    value_from_action += probability*(reward+gamma*Vprev[nextstate])
-                if value_from_action>=max_val:
-                    max_val = value_from_action
-                    best_policy = a
-            values.append(max_val)
-            p.append(best_policy)
+                #tuple_list = mdp.P[s][a]
+                dt = np.dtype('float,int,float')
+                Parray = np.array(mdp.P[s][a], dtype=dt)
+                probability = Parray['f0']
+                nextstate = Parray['f1']
+                reward = Parray['f2']
+                actions_values.append(np.sum(probability*(reward+gamma*Vprev[nextstate])))
 
-        V = np.array(values)# REPLACE THIS LINE WITH YOUR CODE
-        pi = np.array(p) # REPLACE THIS LINE WITH YOUR CODE
+            V.append(np.max(actions_values))
+            pi.append(np.argmax(actions_values))
 
         max_diff = np.abs(V - Vprev).max()
         nChgActions="N/A" if oldpi is None else (pi != oldpi).sum()
