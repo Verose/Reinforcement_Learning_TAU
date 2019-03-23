@@ -15,9 +15,7 @@ def find_most_probable_word(word_size):
     num_letters = consecutive_letter_dist_matrix.shape[0]
     f = np.full((num_letters, word_size+1), np.inf)
 
-    # end of the word - the consecutive must be '-'
-    f[num_letters-1, word_size] = 1
-    #f[3, word_size+1] = cost_matrix[:, 3]
+    f[num_letters-1, word_size] = 1 ## end of the word - the consecutive must be '-'
 
     for i in reversed(range(word_size)):
         if i!=0 and i!=word_size-1: #if not the first letter and not the last (the last letter must be -)
