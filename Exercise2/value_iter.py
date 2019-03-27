@@ -87,24 +87,21 @@ def value_iteration(mdp, gamma, nIt):
         for s in range(mdp.nS):
             actions_values = []
             for a in range(mdp.nA):
-                value_from_action = 0
-                #tuple_list = mdp.P[s][a]
                 dt = np.dtype('float,int,float')
                 Parray = np.array(mdp.P[s][a], dtype=dt)
                 probability = Parray['f0']
                 nextstate = Parray['f1']
                 reward = Parray['f2']
-                actions_values.append(np.sum(probability*(reward+gamma*Vprev[nextstate])))
-
+                actions_values.append(np.sum(probability*(reward+gamma*np.asarray(Vprev)[nextstate])))
             V.append(np.max(actions_values))
             pi.append(np.argmax(actions_values))
 
-        max_diff = np.abs(V - Vprev).max()
-        nChgActions="N/A" if oldpi is None else (pi != oldpi).sum()
+        max_diff = np.abs(np.subtract(np.array(V), np.array(Vprev))).max()
+        nChgActions="N/A" if oldpi is None else (np.array(pi) != np.array(oldpi)).sum()
         print("%4i      | %6.5f      | %4s          | %5.3f"%(it, max_diff, nChgActions, V[0]))
         Vs.append(V)
         pis.append(pi)
-    return Vs, pis
+    return np.array(Vs), np.array(pis)
 
 GAMMA = 0.95 # we'll be using this same value in subsequent problems
 Vs_VI, pis_VI = value_iteration(mdp, gamma=GAMMA, nIt=20)
