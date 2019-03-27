@@ -131,7 +131,18 @@ for (V, pi) in zip(Vs_VI[:10], pis_VI[:10]):
             plt.text(x, y, str(env.desc[y,x].item().decode()),
                      color='g', size=12,  verticalalignment='center',
                      horizontalalignment='center', fontweight='bold')
-
+    plt.savefig('step' + str(i) + '.png')
     plt.show()
-    plt.savefig('step'+str(i)+'.png')
     i+=1
+
+
+plt.clf()
+plt.xlabel('Iteration')
+plt.ylabel('State Value')
+for state in range(Vs_VI.shape[1]):
+    plt.plot(Vs_VI[:, state], label='state: {}'.format(state))
+    plt.legend()
+plt.legend(loc='upper center', bbox_to_anchor=(1.2, 1.0), shadow=True, ncol=1)
+plt.tight_layout()
+plt.savefig('state_value_as_function_of_iteration.png')
+plt.show()
