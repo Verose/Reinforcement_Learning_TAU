@@ -110,7 +110,7 @@ Vs_VI, pis_VI = value_iteration(mdp, gamma=GAMMA, nIt=20)
 # Below is code for illustrating the progress of value iteration.
 # Your optimal actions are shown by arrows.
 # At the bottom, the value of the different states are plotted.
-
+i=1
 for (V, pi) in zip(Vs_VI[:10], pis_VI[:10]):
     plt.figure(figsize=(3,3))
     plt.imshow(V.reshape(4,4), cmap='gray', interpolation='none', clim=(0,1))
@@ -122,6 +122,7 @@ for (V, pi) in zip(Vs_VI[:10], pis_VI[:10]):
     Y, X = np.mgrid[0:4, 0:4]
     a2uv = {0: (-1, 0), 1:(0, -1), 2:(1,0), 3:(0, 1)}
     Pi = pi.reshape(4,4)
+    plt.grid(color='b', lw=2, ls='-')
     for y in range(4):
         for x in range(4):
             a = Pi[y, x]
@@ -130,4 +131,7 @@ for (V, pi) in zip(Vs_VI[:10], pis_VI[:10]):
             plt.text(x, y, str(env.desc[y,x].item().decode()),
                      color='g', size=12,  verticalalignment='center',
                      horizontalalignment='center', fontweight='bold')
-    plt.grid(color='b', lw=2, ls='-')
+
+    plt.show()
+    plt.savefig('step'+str(i)+'.png')
+    i+=1
