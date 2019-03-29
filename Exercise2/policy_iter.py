@@ -135,4 +135,5 @@ for i, bla in enumerate(np.array(Vs_PI).T):
     plt.plot(bla, label='state: '+str(i))
 plt.legend(loc='upper right')
 plt.savefig('policy_iteration_as_function_of_iteration.png')
-plt.show()
+# plt.show()
+env.close()
