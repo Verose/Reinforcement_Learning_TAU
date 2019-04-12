@@ -229,7 +229,7 @@ while consecutive_no_learning_trials < NO_LEARNING_THRESHOLD:
         # TODO:
         index_changed_transition = np.where(transition_statistic > 0)
         index_changed_state = np.where(new_state_statistic > 0)
-        transition_probabilities[index_changed_transition] = transition_statistic[index_changed_transition]/new_state_statistic[index_changed_state]
+        transition_probabilities[index_changed_transition] = transition_statistic[index_changed_transition]/new_state_statistic[index_changed_transition[2]]
         states_rewards[index_changed_state] = rewards_statistic[index_changed_state]/new_state_statistic[index_changed_state]
 
         #raise NotImplementedError('MDP  T and R update not implemented')
@@ -246,10 +246,10 @@ while consecutive_no_learning_trials < NO_LEARNING_THRESHOLD:
         old_value_function = value_function.copy()
         value_function = states_rewards + np.max(GAMMA*transition_probabilities.dot(value_function))
         value_function_diff = np.abs(old_value_function-value_function)
-        if len(np.where(value_function_diff<=TOLERANCE))==NUM_STATES and time==1:
+        if len(np.where(value_function_diff<=TOLERANCE)[0])==NUM_STATES and time==1:
             NO_LEARNING_THRESHOLD+=1
 
-        raise NotImplementedError('Value iteration choice not implemented')
+        #raise NotImplementedError('Value iteration choice not implemented')
         ###### END YOUR CODE ######
 
     # Do NOT change this code: Controls the simulation, and handles the case
