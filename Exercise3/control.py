@@ -138,7 +138,10 @@ state = cart_pole.get_state(state_tuple)
 
 ###### BEGIN YOUR CODE ######
 # TODO:
-raise NotImplementedError('Initializations not implemented')
+value_function = np.random.uniform(0, 0.1, NUM_STATES)
+transition_probabilities = np.full((NUM_STATES, NUM_ACTIONS, NUM_STATES), float(1)/NUM_STATES)
+states_rewards = np.zeros(NUM_STATES)
+#raise NotImplementedError('Initializations not implemented')
 ###### END YOUR CODE ######
 
 # This is the criterion to end the simulation.
@@ -159,8 +162,12 @@ while consecutive_no_learning_trials < NO_LEARNING_THRESHOLD:
     # model.
     ###### BEGIN YOUR CODE ######
     # TODO:
+
     # raise NotImplementedError('Action choice not implemented')
     # action = 0 if np.random.uniform() < 0.5 else 1
+    values_matrix = states_rewards[state] + GAMMA*transition_probabilities[state, :]*value_function.transpose()
+    action = np.argmax(values_matrix)
+
     ###### END YOUR CODE ######
 
     # Get the next state by simulating the dynamics
@@ -191,10 +198,17 @@ while consecutive_no_learning_trials < NO_LEARNING_THRESHOLD:
 
     ###### BEGIN YOUR CODE ######
     # TODO:
+
     raise NotImplementedError('Update T and R not implemented')
+
+    transition_statistic[state, action, new_state] += 1
+    new_state_statistic[new_state] += 1
+    rewards_statistic[new_state] = R
+
     # record the number of times `state, action, new_state` occurs
     # record the rewards for every `new_state`
     # record the number of time `new_state` was reached
+
     ###### END YOUR CODE ######
 
     # Recompute MDP model whenever pole falls
@@ -210,6 +224,11 @@ while consecutive_no_learning_trials < NO_LEARNING_THRESHOLD:
 
         ###### BEGIN YOUR CODE ######
         # TODO:
+        index_changed_transition = np.where(transition_statistic > 0)
+        index_changed_state = np.where(new_state_statistic > 0)
+        transition_probabilities[index_changed_transition, index_changed_state] = float(1)/transition_statistic[index_changed_transition]
+        states_rewards[index_changed_state] = rewards_statistic[index_changed_state]
+
         raise NotImplementedError('MDP  T and R update not implemented')
         ###### END YOUR CODE ######
 
