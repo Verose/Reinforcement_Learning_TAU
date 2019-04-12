@@ -152,6 +152,9 @@ states_rewards = np.zeros(NUM_STATES)
 # here, and say the overall algorithm has converged.
 
 consecutive_no_learning_trials = 0
+transition_statistic = np.zeros((NUM_STATES, NUM_ACTIONS, NUM_STATES))
+new_state_statistic = np.zeros(NUM_STATES)
+rewards_statistic = np.zeros(NUM_STATES)
 while consecutive_no_learning_trials < NO_LEARNING_THRESHOLD:
 
     # Write code to choose action (0 or 1).
@@ -165,7 +168,7 @@ while consecutive_no_learning_trials < NO_LEARNING_THRESHOLD:
 
     # raise NotImplementedError('Action choice not implemented')
     # action = 0 if np.random.uniform() < 0.5 else 1
-    values_matrix = states_rewards[state] + GAMMA*transition_probabilities[state, :]*value_function.transpose()
+    values_matrix = states_rewards[state] + GAMMA*transition_probabilities[state, :].dot(value_function)
     action = np.argmax(values_matrix)
 
     ###### END YOUR CODE ######
@@ -199,11 +202,11 @@ while consecutive_no_learning_trials < NO_LEARNING_THRESHOLD:
     ###### BEGIN YOUR CODE ######
     # TODO:
 
-    raise NotImplementedError('Update T and R not implemented')
+    #raise NotImplementedError('Update T and R not implemented')
 
     transition_statistic[state, action, new_state] += 1
     new_state_statistic[new_state] += 1
-    rewards_statistic[new_state] = R
+    rewards_statistic[new_state] += R
 
     # record the number of times `state, action, new_state` occurs
     # record the rewards for every `new_state`
@@ -226,10 +229,10 @@ while consecutive_no_learning_trials < NO_LEARNING_THRESHOLD:
         # TODO:
         index_changed_transition = np.where(transition_statistic > 0)
         index_changed_state = np.where(new_state_statistic > 0)
-        transition_probabilities[index_changed_transition, index_changed_state] = float(1)/transition_statistic[index_changed_transition]
-        states_rewards[index_changed_state] = rewards_statistic[index_changed_state]
+        transition_probabilities[index_changed_transition] = transition_statistic[index_changed_transition]/new_state_statistic[index_changed_state]
+        states_rewards[index_changed_state] = rewards_statistic[index_changed_state]/new_state_statistic[index_changed_state]
 
-        raise NotImplementedError('MDP  T and R update not implemented')
+        #raise NotImplementedError('MDP  T and R update not implemented')
         ###### END YOUR CODE ######
 
         # Perform value iteration using the new estimated model for the MDP.
@@ -240,6 +243,12 @@ while consecutive_no_learning_trials < NO_LEARNING_THRESHOLD:
 
         ###### BEGIN YOUR CODE ######
         # TODO:
+        old_value_function = value_function.copy()
+        value_function = states_rewards + np.max(GAMMA*transition_probabilities.dot(value_function))
+        value_function_diff = np.abs(old_value_function-value_function)
+        if len(np.where(value_function_diff<=TOLERANCE))==NUM_STATES and time==1:
+            NO_LEARNING_THRESHOLD+=1
+
         raise NotImplementedError('Value iteration choice not implemented')
         ###### END YOUR CODE ######
 
@@ -277,4 +286,4 @@ plt.plot(x, weights[window:len(log_tstf)], 'r--')
 plt.xlabel('Num failures')
 plt.ylabel('Num steps to failure')
 plt.show()
-env.close()
+#env.close()
