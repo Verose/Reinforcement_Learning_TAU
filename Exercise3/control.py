@@ -244,7 +244,7 @@ while consecutive_no_learning_trials < NO_LEARNING_THRESHOLD:
         ###### BEGIN YOUR CODE ######
         # TODO:
         old_value_function = value_function.copy()
-        value_function = states_rewards + np.max(GAMMA*transition_probabilities.dot(value_function))
+        value_function = np.max(np.add(states_rewards, GAMMA*(transition_probabilities.dot(value_function)).transpose()).transpose(), axis=1)
         value_function_diff = np.abs(old_value_function-value_function)
         if len(np.where(value_function_diff<=TOLERANCE)[0])==NUM_STATES and time==1:
             NO_LEARNING_THRESHOLD+=1
