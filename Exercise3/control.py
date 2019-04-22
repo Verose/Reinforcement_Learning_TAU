@@ -168,7 +168,7 @@ while consecutive_no_learning_trials < NO_LEARNING_THRESHOLD:
 
     # raise NotImplementedError('Action choice not implemented')
     # action = 0 if np.random.uniform() < 0.5 else 1
-    values_matrix = states_rewards[state] + GAMMA*transition_probabilities[state, :].dot(value_function)
+    values_matrix = np.sum(transition_probabilities[state] * value_function, axis=1)
     action = np.argmax(values_matrix)
 
     ###### END YOUR CODE ######
@@ -227,9 +227,13 @@ while consecutive_no_learning_trials < NO_LEARNING_THRESHOLD:
 
         ###### BEGIN YOUR CODE ######
         # TODO:
-        index_changed_transition = np.where(transition_statistic > 0)
+        all_observed_s_a = np.sum(transition_statistic, axis=2)
+        for s in range(NUM_STATES):
+            for a in range(NUM_ACTIONS):
+                if all_observed_s_a[s][a] > 0:
+                    transition_probabilities[s][a] = transition_statistic[s][a] / all_observed_s_a[s][a]
+
         index_changed_state = np.where(new_state_statistic > 0)
-        transition_probabilities[index_changed_transition] = transition_statistic[index_changed_transition]/new_state_statistic[index_changed_transition[2]]
         states_rewards[index_changed_state] = rewards_statistic[index_changed_state]/new_state_statistic[index_changed_state]
 
         #raise NotImplementedError('MDP  T and R update not implemented')
@@ -243,13 +247,23 @@ while consecutive_no_learning_trials < NO_LEARNING_THRESHOLD:
 
         ###### BEGIN YOUR CODE ######
         # TODO:
-        old_value_function = value_function.copy()
-        value_function = np.max(np.add(states_rewards, GAMMA*(transition_probabilities.dot(value_function)).transpose()).transpose(), axis=1)
-        value_function_diff = np.abs(old_value_function-value_function)
-        if len(np.where(value_function_diff<=TOLERANCE)[0])==NUM_STATES and time==1:
-            NO_LEARNING_THRESHOLD+=1
+        changes = 0
+        value_function_diff = TOLERANCE + 1
+        while value_function_diff > TOLERANCE:
+            new_value_func = np.zeros_like(value_function)
+            for s in range(NUM_STATES):
+                    value_s_a = np.zeros(NUM_ACTIONS)
+                    for a in range(NUM_ACTIONS):
+                        value_s_a[a] = np.dot(transition_probabilities[s][a], value_function)
+                    new_value_func[s] = np.add(states_rewards[s], GAMMA*np.max(value_s_a))
+            value_function_diff = np.max(np.abs(new_value_func - value_function))
+            value_function = new_value_func
+            changes += 1
 
-        #raise NotImplementedError('Value iteration choice not implemented')
+        if changes <= 1:
+            consecutive_no_learning_trials += 1
+        else:
+            consecutive_no_learning_trials = 0
         ###### END YOUR CODE ######
 
     # Do NOT change this code: Controls the simulation, and handles the case
@@ -285,7 +299,6 @@ x = np.arange(window//2, len(log_tstf) - window//2)
 plt.plot(x, weights[window:len(log_tstf)], 'r--')
 plt.xlabel('Num failures')
 plt.ylabel('Num steps to failure')
-plt.show()
 plt.tight_layout()
-plt.savefig('Num steps to failure as function of Num failures.png')
-#env.close()
+plt.savefig('steps_to_failure_vs_failures.png')
+plt.show()
