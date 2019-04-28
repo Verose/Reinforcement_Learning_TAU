@@ -82,8 +82,9 @@ for i in range(num_episodes):
         # (run the network for current state and choose the action with the maxQ)
         # TODO: Implement Step 1
         Q = f(one_hot(s))
-        a = Q.argmax().item()
-        
+        # a = Q.argmax().item()
+        a = Q.max(0)[1].item()
+
         # 2. A chance of e to perform random action
         if np.random.rand(1) < e:
             a = env.action_space.sample()
