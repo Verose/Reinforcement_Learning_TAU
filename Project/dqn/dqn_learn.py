@@ -20,11 +20,13 @@ from utils.gym import get_wrapper_by_name
 USE_CUDA = torch.cuda.is_available()
 dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
+
 class Variable(autograd.Variable):
     def __init__(self, data, *args, **kwargs):
         if USE_CUDA:
             data = data.cuda()
         super(Variable, self).__init__(data, *args, **kwargs)
+
 
 """
     OptimizerSpec containing following attributes
@@ -38,20 +40,20 @@ Statistic = {
     "best_mean_episode_rewards": []
 }
 
-def dqn_learing(
-    env,
-    q_func,
-    optimizer_spec,
-    exploration,
-    stopping_criterion=None,
-    replay_buffer_size=1000000,
-    batch_size=32,
-    gamma=0.99,
-    learning_starts=50000,
-    learning_freq=4,
-    frame_history_len=4,
-    target_update_freq=10000):
 
+def dqn_learing(
+        env,
+        q_func,
+        optimizer_spec,
+        exploration,
+        stopping_criterion=None,
+        replay_buffer_size=1000000,
+        batch_size=32,
+        gamma=0.99,
+        learning_starts=50000,
+        learning_freq=4,
+        frame_history_len=4,
+        target_update_freq=10000):
     """Run Deep Q-learning algorithm.
 
     You can specify your own convnet using q_func.
@@ -94,7 +96,7 @@ def dqn_learing(
         each update to the target Q network
     """
     assert type(env.observation_space) == gym.spaces.Box
-    assert type(env.action_space)      == gym.spaces.Discrete
+    assert type(env.action_space) == gym.spaces.Discrete
 
     ###############
     # BUILD MODEL #
@@ -123,15 +125,14 @@ def dqn_learing(
     ######
 
     # YOUR CODE HERE
+    target_net = q_func(input_arg, num_actions)
+    policy_net = q_func(input_arg, num_actions)
+    target_net.load_state_dict(policy_net.state_dict())
 
     ######
-    q_function = q_func(input_channel, num_actions)
-    traget_q_function = q_func(input_channel, num_actions)
-
-
 
     # Construct Q network optimizer function
-    optimizer = optimizer_spec.constructor(Q.parameters(), **optimizer_spec.kwargs)
+    optimizer = optimizer_spec.constructor(policy_net.parameters(), **optimizer_spec.kwargs)
 
     # Construct the replay buffer
     replay_buffer = ReplayBuffer(replay_buffer_size, frame_history_len)
@@ -146,11 +147,11 @@ def dqn_learing(
     LOG_EVERY_N_STEPS = 10000
 
     for t in count():
-        ### 1. Check stopping criterion
+        # 1. Check stopping criterion
         if stopping_criterion is not None and stopping_criterion(env):
             break
 
-        ### 2. Step the env and store the transition
+        # 2. Step the env and store the transition
         # At this point, "last_obs" contains the latest observation that was
         # recorded from the simulator. Here, your code needs to store this
         # observation and its outcome (reward, next observation, etc.) into
@@ -184,12 +185,23 @@ def dqn_learing(
         # YOUR CODE HERE
 
         #####
+        idx = replay_buffer.store_frame(last_obs)
+        action = select_epilson_greedy_action(
+            policy_net,
+            replay_buffer.encode_recent_observation(),
+            t)
+        obs, reward, done, info = env.step(action)
+        replay_buffer.store_effect(idx, action, reward, done)
+
+        if done:
+            obs = env.reset()
+        last_obs = obs
 
         # at this point, the environment should have been advanced one step (and
         # reset if done was true), and last_obs should point to the new latest
         # observation
 
-        ### 3. Perform experience replay and train the network.
+        # 3. Perform experience replay and train the network.
         # Note that this is only done if the replay buffer contains enough samples
         # for us to learn something useful -- until then, the model will not be
         # initialized and random actions should be taken
@@ -201,7 +213,7 @@ def dqn_learing(
             # replay buffer code for function definition, each batch that you sample
             # should consist of current observations, current actions, rewards,
             # next observations, and done indicator).
-            # Note: Move the variables to the GPU if avialable
+            # Note: Move the variables to the GPU if available
             # 3.b: fill in your own code to compute the Bellman error. This requires
             # evaluating the current and next Q-values and constructing the corresponding error.
             # Note: don't forget to clip the error between [-1,1], multiply is by -1 (since pytorch minimizes) and
@@ -220,10 +232,31 @@ def dqn_learing(
             #####
 
             # YOUR CODE HERE
+            sample = replay_buffer.sample(batch_size)
+            obs_batch, a_batch, r_batch, next_obs_batch, done_mask = sample
+
+            non_final_mask = torch.tensor(
+                tuple(map(lambda s: s is not None, next_obs_batch)), dtype=torch.uint8)
+
+            non_final_next_states = torch.cat([s for s in next_obs_batch if s is not None]).to('cuda')
+
+            state_action_values = policy_net(obs_batch).gather(1, a_batch)
+
+            next_state_values = torch.zeros(batch_size)
+            next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
+            expected_state_action_values = (next_state_values * gamma) + r_batch
+
+            loss = F.mse_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+
+            optimizer.zero_grad()
+            loss.backward()
+            for param in policy_net.parameters():
+                param.grad.data.clamp_(-1, 1)
+            optimizer.step()
 
             #####
 
-        ### 4. Log progress and keep track of statistics
+        # 4. Log progress and keep track of statistics
         episode_rewards = get_wrapper_by_name(env, "Monitor").get_episode_rewards()
         if len(episode_rewards) > 0:
             mean_episode_reward = np.mean(episode_rewards[-100:])

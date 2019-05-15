@@ -66,7 +66,6 @@ class ReplayBuffer(object):
 
         return obs_batch, act_batch, rew_batch, next_obs_batch, done_mask
 
-
     def sample(self, batch_size):
         """Sample `batch_size` different transitions.
 
@@ -118,12 +117,12 @@ class ReplayBuffer(object):
         return self._encode_observation((self.next_idx - 1) % self.size)
 
     def _encode_observation(self, idx):
-        end_idx   = idx + 1 # make noninclusive
+        end_idx = idx + 1  # make noninclusive
         start_idx = end_idx - self.frame_history_len
         # this checks if we are using low-dimensional observations, such as RAM
         # state, in which case we just directly return the latest RAM.
         if len(self.obs.shape) == 2:
-            return self.obs[end_idx-1]
+            return self.obs[end_idx - 1]
         # if there weren't enough frames ever in the buffer for context
         if start_idx < 0 and self.num_in_buffer != self.size:
             start_idx = 0
@@ -163,10 +162,10 @@ class ReplayBuffer(object):
             frame = frame.transpose(2, 0, 1)
 
         if self.obs is None:
-            self.obs      = np.empty([self.size] + list(frame.shape), dtype=np.uint8)
-            self.action   = np.empty([self.size],                     dtype=np.int32)
-            self.reward   = np.empty([self.size],                     dtype=np.float32)
-            self.done     = np.empty([self.size],                     dtype=np.bool)
+            self.obs = np.empty([self.size] + list(frame.shape), dtype=np.uint8)
+            self.action = np.empty([self.size], dtype=np.int32)
+            self.reward = np.empty([self.size], dtype=np.float32)
+            self.done = np.empty([self.size], dtype=np.bool)
 
         self.obs[self.next_idx] = frame
 
@@ -195,4 +194,4 @@ class ReplayBuffer(object):
         """
         self.action[idx] = action
         self.reward[idx] = reward
-        self.done[idx]   = done
+        self.done[idx] = done
