@@ -19,6 +19,7 @@ from utils.gym import get_wrapper_by_name
 
 USE_CUDA = torch.cuda.is_available()
 dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
+longType = torch.cuda.LongTensor if USE_CUDA else torch.LongTensor
 
 
 class Variable(autograd.Variable):
@@ -26,6 +27,18 @@ class Variable(autograd.Variable):
         if USE_CUDA:
             data = data.cuda()
         super(Variable, self).__init__(data, *args, **kwargs)
+
+
+def get_tensor(obs, type=dtype, normalize=True):
+    t = torch.from_numpy(obs).type(type)
+    if normalize:
+        return t / 255.0
+    else:
+        return t
+
+
+def get_variable(x, grad=False, type=dtype, normalize=True):
+    return Variable(get_tensor(x, type=type, normalize=normalize), requires_grad=grad)
 
 
 """
@@ -115,7 +128,7 @@ def dqn_learing(
         sample = random.random()
         eps_threshold = exploration.value(t)
         if sample > eps_threshold:
-            obs = torch.from_numpy(obs).type(dtype).unsqueeze(0) / 255.0
+            obs = get_tensor(obs).unsqueeze(0)
             # Use volatile = True if variable is only used in inference mode, i.e. don’t save the history
             return model(Variable(obs, volatile=True)).data.max(1)[1].cpu()
         else:
@@ -125,14 +138,18 @@ def dqn_learing(
     ######
 
     # YOUR CODE HERE
-    target_net = q_func(input_arg, num_actions)
-    policy_net = q_func(input_arg, num_actions)
-    target_net.load_state_dict(policy_net.state_dict())
+    Q = q_func(input_arg, num_actions)
+    Q_target = q_func(input_arg, num_actions)
+    Q_target.load_state_dict(Q.state_dict())
+
+    if USE_CUDA:
+        Q = Q.cuda()
+        Q_target = Q_target.cuda()
 
     ######
 
     # Construct Q network optimizer function
-    optimizer = optimizer_spec.constructor(policy_net.parameters(), **optimizer_spec.kwargs)
+    optimizer = optimizer_spec.constructor(Q.parameters(), **optimizer_spec.kwargs)
 
     # Construct the replay buffer
     replay_buffer = ReplayBuffer(replay_buffer_size, frame_history_len)
@@ -186,11 +203,8 @@ def dqn_learing(
 
         #####
         idx = replay_buffer.store_frame(last_obs)
-        action = select_epilson_greedy_action(
-            policy_net,
-            replay_buffer.encode_recent_observation(),
-            t)
-        obs, reward, done, info = env.step(action)
+        action = select_epilson_greedy_action(Q, replay_buffer.encode_recent_observation(), t)
+        obs, reward, done, _ = env.step(action)
         replay_buffer.store_effect(idx, action, reward, done)
 
         if done:
@@ -235,24 +249,25 @@ def dqn_learing(
             sample = replay_buffer.sample(batch_size)
             obs_batch, a_batch, r_batch, next_obs_batch, done_mask = sample
 
-            non_final_mask = torch.tensor(
-                tuple(map(lambda s: s is not None, next_obs_batch)), dtype=torch.uint8)
+            next_state_values = Q_target(get_variable(next_obs_batch)).max(1)[0].detach()
+            a_batch_var = get_variable(a_batch, type=longType, normalize=False).unsqueeze(1)
+            state_action_values = Q(get_variable(obs_batch)).gather(1, a_batch_var)
 
-            non_final_next_states = torch.cat([s for s in next_obs_batch if s is not None]).to('cuda')
+            masked_next_state_values = next_state_values * (1 - get_variable(done_mask, normalize=False))
+            r_batch_var = get_variable(r_batch, normalize=False)
+            expected_state_action_values = (masked_next_state_values * gamma) + r_batch_var
 
-            state_action_values = policy_net(obs_batch).gather(1, a_batch)
-
-            next_state_values = torch.zeros(batch_size)
-            next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
-            expected_state_action_values = (next_state_values * gamma) + r_batch
-
-            loss = F.mse_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+            loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
 
             optimizer.zero_grad()
             loss.backward()
-            for param in policy_net.parameters():
+            for param in Q.parameters():
                 param.grad.data.clamp_(-1, 1)
             optimizer.step()
+
+            num_param_updates += 1
+            if num_param_updates % target_update_freq == 0:
+                Q_target.load_state_dict(Q.state_dict())
 
             #####
 
