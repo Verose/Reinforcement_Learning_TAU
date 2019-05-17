@@ -17,6 +17,8 @@ import torch.autograd as autograd
 from utils.replay_buffer import ReplayBuffer
 from utils.gym import get_wrapper_by_name
 
+import matplotlib.pyplot as plt
+
 USE_CUDA = torch.cuda.is_available()
 dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 longType = torch.cuda.LongTensor if USE_CUDA else torch.LongTensor
@@ -293,3 +295,13 @@ def dqn_learing(
             with open('statistics.pkl', 'wb') as f:
                 pickle.dump(Statistic, f)
                 print("Saved to %s" % 'statistics.pkl')
+
+
+    plt.xlabel('Timesteps')
+    plt.ylabel('Mean Reward (past 100 episodes)')
+    plt.plot(list(range(t)), Statistic["mean_episode_rewards"], label='mean reward')
+    plt.plot(list(range(t)), Statistic["best_mean_episode_rewards"], label='best mean rewards')
+    plt.legend(loc='upper center', bbox_to_anchor=(1.2, 1.0), shadow=True, ncol=1)
+    plt.tight_layout()
+    plt.show()
+    plt.savefig('DeepQ-Performance.png')
