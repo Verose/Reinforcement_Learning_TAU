@@ -263,10 +263,10 @@ def dqn_learing(
             # 3.b compute the Bellman error
             # evaluating the current and next Q-values
             state_action_values = Q(obs_batch_var).gather(1, a_batch_var)
-            next_state_values = Q_target(next_obs_batch_var).max(1)[0].detach()
+            next_state_values = Q_target(next_obs_batch_var).detach()
 
             # maskout post terminal status Q-values
-            masked_next_state_values = next_state_values * (1 - done_mask_var)
+            masked_next_state_values = next_state_values.max(1)[0] * (1 - done_mask_var)
             # constructing the corresponding error
             expected_state_action_values = (masked_next_state_values * gamma) + r_batch_var
             bellman_error = expected_state_action_values.unsqueeze(1) - state_action_values
@@ -316,5 +316,5 @@ def dqn_learing(
     plt.plot(range(t+1), Statistic["best_mean_episode_rewards"], label='best mean rewards')
     plt.legend(loc='upper center', bbox_to_anchor=(1.2, 1.0), shadow=True, ncol=1)
     plt.tight_layout()
-    plt.show()
     plt.savefig('DeepQ-Performance.png')
+    plt.show()
