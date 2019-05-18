@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 USE_CUDA = torch.cuda.is_available()
 dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 longType = torch.cuda.LongTensor if USE_CUDA else torch.LongTensor
+print('******* Running on {} *******'.format('CUDA' if USE_CUDA else 'CPU'))
 
 
 class Variable(autograd.Variable):
@@ -248,25 +249,38 @@ def dqn_learing(
             #####
 
             # YOUR CODE HERE
+            # 3.a sample a batch of transitions
             sample = replay_buffer.sample(batch_size)
             obs_batch, a_batch, r_batch, next_obs_batch, done_mask = sample
 
-            next_state_values = Q_target(get_variable(next_obs_batch)).max(1)[0].detach()
+            # move variables to GPU if available
+            obs_batch_var = get_variable(obs_batch)
             a_batch_var = get_variable(a_batch, type=longType, normalize=False).unsqueeze(1)
-            state_action_values = Q(get_variable(obs_batch)).gather(1, a_batch_var)
-
-            masked_next_state_values = next_state_values * (1 - get_variable(done_mask, normalize=False))
             r_batch_var = get_variable(r_batch, normalize=False)
+            next_obs_batch_var = get_variable(next_obs_batch)
+            done_mask_var = get_variable(done_mask, normalize=False)
+
+            # 3.b compute the Bellman error
+            # evaluating the current and next Q-values
+            state_action_values = Q(obs_batch_var).gather(1, a_batch_var)
+            next_state_values = Q_target(next_obs_batch_var).max(1)[0].detach()
+
+            # maskout post terminal status Q-values
+            masked_next_state_values = next_state_values * (1 - done_mask_var)
+            # constructing the corresponding error
             expected_state_action_values = (masked_next_state_values * gamma) + r_batch_var
+            bellman_error = expected_state_action_values.unsqueeze(1) - state_action_values
 
-            loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
-
+            # clip the error between [-1,1]
+            clipped_bellman_error = bellman_error.clamp(-1, 1)
             optimizer.zero_grad()
-            loss.backward()
-            for param in Q.parameters():
-                param.grad.data.clamp_(-1, 1)
+            # multiply by -1 (since pytorch minimizes)
+            state_action_values.backward(-clipped_bellman_error)
+
+            # 3.c: train the model
             optimizer.step()
 
+            # 3.d periodically update the target network
             num_param_updates += 1
             if num_param_updates % target_update_freq == 0:
                 Q_target.load_state_dict(Q.state_dict())
@@ -296,11 +310,10 @@ def dqn_learing(
                 pickle.dump(Statistic, f)
                 print("Saved to %s" % 'statistics.pkl')
 
-
     plt.xlabel('Timesteps')
     plt.ylabel('Mean Reward (past 100 episodes)')
-    plt.plot(list(range(t)), Statistic["mean_episode_rewards"], label='mean reward')
-    plt.plot(list(range(t)), Statistic["best_mean_episode_rewards"], label='best mean rewards')
+    plt.plot(range(t+1), Statistic["mean_episode_rewards"], label='mean reward')
+    plt.plot(range(t+1), Statistic["best_mean_episode_rewards"], label='best mean rewards')
     plt.legend(loc='upper center', bbox_to_anchor=(1.2, 1.0), shadow=True, ncol=1)
     plt.tight_layout()
     plt.show()
