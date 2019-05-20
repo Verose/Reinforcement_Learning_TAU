@@ -1,6 +1,8 @@
 """
     This file is copied/apdated from https://github.com/berkeleydeeprlcourse/homework/tree/master/hw3
 """
+import os
+import platform
 import sys
 import pickle
 import numpy as np
@@ -17,11 +19,16 @@ import torch.autograd as autograd
 from utils.replay_buffer import ReplayBuffer
 from utils.gym import get_wrapper_by_name
 
+if not platform.system() == 'Windows':
+    import matplotlib
+    matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 USE_CUDA = torch.cuda.is_available()
 dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 longType = torch.cuda.LongTensor if USE_CUDA else torch.LongTensor
+SavedState = namedtuple("SavedState", "state_dict timestep stats")
+STATISTICS_FILE_PATH = 'statistics.pkl'
 print('******* Running on {} *******'.format('CUDA' if USE_CUDA else 'CPU'))
 
 
@@ -30,6 +37,19 @@ class Variable(autograd.Variable):
         if USE_CUDA:
             data = data.cuda()
         super(Variable, self).__init__(data, *args, **kwargs)
+
+
+def save(state_dict, timestep, stats):
+    # Dump statistics to pickle
+    with open(STATISTICS_FILE_PATH, 'wb') as f:
+        pickle.dump(SavedState(state_dict, timestep, stats), f, pickle.HIGHEST_PROTOCOL)
+        print("Saved to %s" % STATISTICS_FILE_PATH)
+
+
+def load():
+    with open('statistics.pkl', 'rb') as f:
+        saved_state = pickle.load(f)
+    return saved_state
 
 
 def get_tensor(obs, type=dtype, normalize=True):
@@ -50,11 +70,6 @@ def get_variable(x, grad=False, type=dtype, normalize=True):
         kwargs: {Dict} arguments for constructing optimizer
 """
 OptimizerSpec = namedtuple("OptimizerSpec", ["constructor", "kwargs"])
-
-Statistic = {
-    "mean_episode_rewards": [],
-    "best_mean_episode_rewards": []
-}
 
 
 def dqn_learing(
@@ -157,16 +172,33 @@ def dqn_learing(
     # Construct the replay buffer
     replay_buffer = ReplayBuffer(replay_buffer_size, frame_history_len)
 
+    Statistic = {
+        "mean_episode_rewards": [],
+        "best_mean_episode_rewards": []
+    }
+
+    mean_episode_reward = -float('nan')
+    best_mean_episode_reward = -float('inf')
+
+    # load previous data
+    start = 0
+    if os.path.isfile(STATISTICS_FILE_PATH):
+        saved_state = load()
+        Q.load_state_dict(saved_state.state_dict)
+        Q_target.load_state_dict(saved_state.state_dict)
+        start = saved_state.timestep
+        Statistic = saved_state.stats
+        mean_episode_reward = Statistic["mean_episode_rewards"][-1][1]
+        best_mean_episode_reward = Statistic["best_mean_episode_rewards"][-1][1]
+
     ###############
     # RUN ENV     #
     ###############
     num_param_updates = 0
-    mean_episode_reward = -float('nan')
-    best_mean_episode_reward = -float('inf')
     last_obs = env.reset()
     LOG_EVERY_N_STEPS = 10000
 
-    for t in count():
+    for t in count(start):
         # 1. Check stopping criterion
         if stopping_criterion is not None and stopping_criterion(env):
             break
@@ -294,8 +326,8 @@ def dqn_learing(
         if len(episode_rewards) > 100:
             best_mean_episode_reward = max(best_mean_episode_reward, mean_episode_reward)
 
-        Statistic["mean_episode_rewards"].append(mean_episode_reward)
-        Statistic["best_mean_episode_rewards"].append(best_mean_episode_reward)
+        Statistic["mean_episode_rewards"].append((t, mean_episode_reward))
+        Statistic["best_mean_episode_rewards"].append((t, best_mean_episode_reward))
 
         if t % LOG_EVERY_N_STEPS == 0 and t > learning_starts:
             print("Timestep %d" % (t,))
@@ -304,17 +336,15 @@ def dqn_learing(
             print("episodes %d" % len(episode_rewards))
             print("exploration %f" % exploration.value(t))
             sys.stdout.flush()
+            save(Q_target.state_dict(), t, Statistic)
 
-            # Dump statistics to pickle
-            with open('statistics.pkl', 'wb') as f:
-                pickle.dump(Statistic, f)
-                print("Saved to %s" % 'statistics.pkl')
-
-    plt.xlabel('Timesteps')
-    plt.ylabel('Mean Reward (past 100 episodes)')
-    plt.plot(range(t+1), Statistic["mean_episode_rewards"], label='mean reward')
-    plt.plot(range(t+1), Statistic["best_mean_episode_rewards"], label='best mean rewards')
-    plt.legend(loc='upper center', bbox_to_anchor=(1.2, 1.0), shadow=True, ncol=1)
-    plt.tight_layout()
-    plt.savefig('DeepQ-Performance.png')
-    plt.show()
+            plt.clf()
+            plt.xlabel('Timesteps')
+            plt.ylabel('Mean Reward (past 100 episodes)')
+            num_items = len(Statistic["mean_episode_rewards"])
+            plt.plot(range(num_items), Statistic["mean_episode_rewards"], label='mean reward')
+            plt.plot(range(num_items), Statistic["best_mean_episode_rewards"], label='best mean rewards')
+            plt.legend(loc='upper center', bbox_to_anchor=(1.2, 1.0), shadow=True, ncol=1)
+            # plt.tight_layout()
+            plt.savefig('DeepQ-Performance.png')
+            # plt.show()
