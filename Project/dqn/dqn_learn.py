@@ -334,7 +334,7 @@ def dqn_learing(
             print("mean reward (100 episodes) %f" % mean_episode_reward)
             print("best mean reward %f" % best_mean_episode_reward)
             print("episodes %d" % len(episode_rewards))
-            print("exploration %f" % exploration.value(t))
+            print("explora`tion %f" % exploration.value(t))
             sys.stdout.flush()
             save(Q_target.state_dict(), t, Statistic)
 
@@ -344,7 +344,6 @@ def dqn_learing(
             num_items = len(Statistic["mean_episode_rewards"])
             plt.plot(range(num_items), Statistic["mean_episode_rewards"], label='mean reward')
             plt.plot(range(num_items), Statistic["best_mean_episode_rewards"], label='best mean rewards')
-            plt.legend(loc='upper center', bbox_to_anchor=(1.2, 1.0), shadow=True, ncol=1)
-            # plt.tight_layout()
+            plt.legend()
             plt.savefig('DeepQ-Performance.png')
             # plt.show()
