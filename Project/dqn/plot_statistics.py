@@ -28,11 +28,12 @@ import pickle
 import argparse
 
 parser = argparse.ArgumentParser(description='Plotting Args')
-parser.add_argument('--path', default='statistics.pkl')
+parser.add_argument('--load', default='statistics.pkl')
+parser.add_argument('--save', default='statistics.png')
 
 args = parser.parse_args()
 
-with open(args.path, 'rb') as f:
+with open(args.load, 'rb') as f:
     saved_state = pickle.load(f)
 
 
@@ -49,4 +50,4 @@ t_best = [item[0] for item in saved_state.stats["best_mean_episode_rewards"]]
 plt.plot(t_mean, mean_episodes, label='mean reward')
 plt.plot(t_best, best_mean, label='best mean rewards')
 plt.legend()
-plt.savefig('statistics.png')
+plt.savefig(args.save)
