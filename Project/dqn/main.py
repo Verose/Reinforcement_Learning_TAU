@@ -9,7 +9,7 @@ from utils.schedule import LinearSchedule
 import argparse
 
 BATCH_SIZE = 32
-GAMMA = 0.99
+GAMMA = 0.6
 REPLAY_BUFFER_SIZE = 1000000
 LEARNING_STARTS = 50000
 LEARNING_FREQ = 4
