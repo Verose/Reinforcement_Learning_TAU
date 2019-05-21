@@ -106,3 +106,6 @@ venv.bak/
 # project
 data/
 .idea/
+venv_dqn/
+venv_dqn_c/
+venv*
