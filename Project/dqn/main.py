@@ -1,10 +1,10 @@
 import gym
 import torch.optim as optim
 
-from dqn_model import DQN, DQN_bn, DQN_RAM
-from dqn_learn import OptimizerSpec, dqn_learing
-from utils.gym import get_env, get_wrapper_by_name
-from utils.schedule import LinearSchedule
+from .dqn_model import DQN, DQN_bn, DQN_RAM
+from .dqn_learn import OptimizerSpec, dqn_learing
+from .utils.gym import get_env, get_wrapper_by_name
+from .utils.schedule import LinearSchedule
 
 import argparse
 

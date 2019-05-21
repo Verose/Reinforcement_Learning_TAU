@@ -16,8 +16,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.autograd as autograd
 
-from utils.replay_buffer import ReplayBuffer
-from utils.gym import get_wrapper_by_name
+from .utils.replay_buffer import ReplayBuffer
+from .utils.gym import get_wrapper_by_name
 
 if not platform.system() == 'Windows':
     import matplotlib
