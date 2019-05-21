@@ -28,7 +28,7 @@ USE_CUDA = torch.cuda.is_available()
 dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 longType = torch.cuda.LongTensor if USE_CUDA else torch.LongTensor
 SavedState = namedtuple("SavedState", "state_dict timestep stats")
-STATISTICS_FILE_PATH = 'statistics.pkl'
+# STATISTICS_FILE_PATH = 'statistics.pkl'
 print('******* Running on {} *******'.format('CUDA' if USE_CUDA else 'CPU'))
 
 
@@ -39,15 +39,15 @@ class Variable(autograd.Variable):
         super(Variable, self).__init__(data, *args, **kwargs)
 
 
-def save(state_dict, timestep, stats):
+def save(state_dict, timestep, stats, save_path):
     # Dump statistics to pickle
-    with open(STATISTICS_FILE_PATH, 'wb') as f:
+    with open(save_path, 'wb') as f:
         pickle.dump(SavedState(state_dict, timestep, stats), f, pickle.HIGHEST_PROTOCOL)
-        print("Saved to %s" % STATISTICS_FILE_PATH)
+        print("Saved to %s" % save_path)
 
 
-def load():
-    with open('statistics.pkl', 'rb') as f:
+def load(path):
+    with open(path, 'rb') as f:
         saved_state = pickle.load(f)
     return saved_state
 
@@ -84,7 +84,9 @@ def dqn_learing(
         learning_starts=50000,
         learning_freq=4,
         frame_history_len=4,
-        target_update_freq=10000):
+        target_update_freq=10000,
+        model_type='DQN',
+        save_path='statistics.pkl'):
     """Run Deep Q-learning algorithm.
 
     You can specify your own convnet using q_func.
@@ -182,8 +184,8 @@ def dqn_learing(
 
     # load previous data
     start = 0
-    if os.path.isfile(STATISTICS_FILE_PATH):
-        saved_state = load()
+    if os.path.isfile(save_path):
+        saved_state = load(save_path)
         Q.load_state_dict(saved_state.state_dict)
         Q_target.load_state_dict(saved_state.state_dict)
         start = saved_state.timestep
@@ -336,7 +338,7 @@ def dqn_learing(
             print("episodes %d" % len(episode_rewards))
             print("explora`tion %f" % exploration.value(t))
             sys.stdout.flush()
-            save(Q_target.state_dict(), t, Statistic)
+            save(Q_target.state_dict(), t, Statistic, save_path)
 
             plt.clf()
             plt.xlabel('Timesteps')

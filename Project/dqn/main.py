@@ -6,6 +6,8 @@ from dqn_learn import OptimizerSpec, dqn_learing
 from utils.gym import get_env, get_wrapper_by_name
 from utils.schedule import LinearSchedule
 
+import argparse
+
 BATCH_SIZE = 32
 GAMMA = 0.99
 REPLAY_BUFFER_SIZE = 1000000
@@ -17,7 +19,7 @@ LEARNING_RATE = 0.00025
 ALPHA = 0.95
 EPS = 0.01
 
-def main(env, num_timesteps):
+def main(env, num_timesteps, model_type, save_path):
 
     def stopping_criterion(env):
         # notice that here t is the number of steps of the wrapped env,
@@ -44,6 +46,8 @@ def main(env, num_timesteps):
         learning_freq=LEARNING_FREQ,
         frame_history_len=FRAME_HISTORY_LEN,
         target_update_freq=TARGER_UPDATE_FREQ,
+        model_type=model_type,
+        save_path=save_path
     )
 
 if __name__ == '__main__':
@@ -53,8 +57,16 @@ if __name__ == '__main__':
     # Change the index to select a different game.
     task = benchmark.tasks[3]
 
+    parser = argparse.ArgumentParser(description='DQN args')
+    parser.add_argument('--model', default='DGN', choices=['DQN', 'BN', 'DP'],
+                        help='model type: DQN, BN, DP')
+    parser.add_argument('--path', default="statistics.pkl",
+                        help='paths to save pickle')
+
+    args = parser.parse_args()
+    
     # Run training
     seed = 0 # Use a seed of zero (you may want to randomize the seed!)
     env = get_env(task, seed)
 
-    main(env, task.max_timesteps)
+    main(env, task.max_timesteps, model_type=args.model, save_path=args.path)
