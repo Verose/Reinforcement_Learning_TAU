@@ -16,8 +16,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.autograd as autograd
 
-from utils.replay_buffer import ReplayBuffer
-from utils.gym import get_wrapper_by_name
+from .utils.replay_buffer import ReplayBuffer
+from .utils.gym import get_wrapper_by_name
 
 if not platform.system() == 'Windows':
     import matplotlib
@@ -25,9 +25,14 @@ if not platform.system() == 'Windows':
 import matplotlib.pyplot as plt
 
 import pickle
+import argparse
 
+parser = argparse.ArgumentParser(description='Plotting Args')
+parser.add_argument('--path', default='statistics.pkl')
 
-with open('statistics.pkl', 'rb') as f:
+args = parser.parse_args()
+
+with open(args.path, 'rb') as f:
     saved_state = pickle.load(f)
 
 
