@@ -85,7 +85,6 @@ def dqn_learing(
         learning_freq=4,
         frame_history_len=4,
         target_update_freq=10000,
-        model_type='DQN',
         save_path='statistics.pkl'):
     """Run Deep Q-learning algorithm.
 

@@ -1,7 +1,7 @@
 import gym
 import torch.optim as optim
 
-from dqn_model import DQN
+from dqn_model import DQN, DQN_bn, DQN_RAM
 from dqn_learn import OptimizerSpec, dqn_learing
 from utils.gym import get_env, get_wrapper_by_name
 from utils.schedule import LinearSchedule
@@ -35,7 +35,7 @@ def main(env, num_timesteps, model_type, save_path):
 
     dqn_learing(
         env=env,
-        q_func=DQN,
+        q_func=model_type,
         optimizer_spec=optimizer_spec,
         exploration=exploration_schedule,
         stopping_criterion=stopping_criterion,
@@ -46,9 +46,15 @@ def main(env, num_timesteps, model_type, save_path):
         learning_freq=LEARNING_FREQ,
         frame_history_len=FRAME_HISTORY_LEN,
         target_update_freq=TARGER_UPDATE_FREQ,
-        model_type=model_type,
         save_path=save_path
     )
+    
+    
+models_dict = {
+    "DQN": DQN,
+    "BN": DQN_bn,
+    "RAM": DQN_RAM,
+    }
 
 if __name__ == '__main__':
     # Get Atari games.
@@ -58,8 +64,8 @@ if __name__ == '__main__':
     task = benchmark.tasks[3]
 
     parser = argparse.ArgumentParser(description='DQN args')
-    parser.add_argument('--model', default='DGN', choices=['DQN', 'BN', 'DP'],
-                        help='model type: DQN, BN, DP')
+    parser.add_argument('--model', default='DGN', choices=['DQN', 'BN', 'RAM'],
+                        help='model type: DQN, BN, RAM')
     parser.add_argument('--path', default="statistics.pkl",
                         help='paths to save pickle')
 
@@ -69,4 +75,6 @@ if __name__ == '__main__':
     seed = 0 # Use a seed of zero (you may want to randomize the seed!)
     env = get_env(task, seed)
 
-    main(env, task.max_timesteps, model_type=args.model, save_path=args.path)
+    
+
+    main(env, task.max_timesteps, model_type=models_dict[args.model], save_path=args.path)
