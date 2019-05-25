@@ -39,7 +39,7 @@ plt.clf()
 plt.xlabel('Timesteps')
 plt.ylabel('Mean Reward (past 100 episodes)')
 
-for pkl, label in args.pkls, args.labels:
+for pkl, label in zip(args.pkls, args.labels):
     with open(pkl, 'rb') as f:
         saved_state = pickle.load(f)
 
