@@ -19,7 +19,8 @@ LEARNING_RATE = 0.00025
 ALPHA = 0.95
 EPS = 0.01
 
-def main(env, num_timesteps, model_type, save_path):
+
+def main(env, num_timesteps, model_type, save_path, rbs):
 
     def stopping_criterion(env):
         # notice that here t is the number of steps of the wrapped env,
@@ -39,7 +40,7 @@ def main(env, num_timesteps, model_type, save_path):
         optimizer_spec=optimizer_spec,
         exploration=exploration_schedule,
         stopping_criterion=stopping_criterion,
-        replay_buffer_size=REPLAY_BUFFER_SIZE,
+        replay_buffer_size=rbs,
         batch_size=BATCH_SIZE,
         gamma=GAMMA,
         learning_starts=LEARNING_STARTS,
@@ -64,17 +65,17 @@ if __name__ == '__main__':
     task = benchmark.tasks[3]
 
     parser = argparse.ArgumentParser(description='DQN args')
-    parser.add_argument('--model', default='DGN', choices=['DQN', 'BN', 'RAM'],
+    parser.add_argument('--model', default='DQN', choices=['DQN', 'BN', 'RAM'],
                         help='model type: DQN, BN, RAM')
     parser.add_argument('--path', default="statistics.pkl",
                         help='paths to save pickle')
+    parser.add_argument('--rbs', default=REPLAY_BUFFER_SIZE,
+                        help='replay buffer size')
 
     args = parser.parse_args()
     
     # Run training
-    seed = 0 # Use a seed of zero (you may want to randomize the seed!)
+    seed = 0  # Use a seed of zero (you may want to randomize the seed!)
     env = get_env(task, seed)
 
-    
-
-    main(env, task.max_timesteps, model_type=models_dict[args.model], save_path=args.path)
+    main(env, task.max_timesteps, model_type=models_dict[args.model], save_path=args.path, rbs=args.rbs)
